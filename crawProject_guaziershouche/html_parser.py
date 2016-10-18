@@ -4,24 +4,7 @@ class HtmlParser(object):
     def __init__(self):
         pass
 
-    def _get_new_urls(self,url,soup):
-        #print "_get_new_urls in"
-        new_urls=set()
-        links=soup.find_all('a',href=re.compile(r"/[a-z]+/\d+x\.htm"))
-        for link in links:
-            new_url=link['href']
-            new_full_url=urlparse.urljoin(url,new_url)
-            #print "new_full_url:%s"%new_full_url
-            new_urls.add(new_full_url)
-        # links=soup.find_all('a',href=re.compile(r"/buy/[0-9a-z]*\.htm"))
-        # for link in links:
-        #     new_url=link['href']
-        #     new_full_url=urlparse.urljoin(url,new_url)
-        #     #print "new_full_url:%s"%new_full_url
-        #     new_urls.add(new_full_url)
-        return new_urls
-
-    def _get_new_data(self,url,soup):
+    def _get_new_data(self,url,soup,titleKeyWords):
         #print "_get_new_data in"
         res_data={}
         res_data['url']=url
@@ -37,13 +20,13 @@ class HtmlParser(object):
         if title_node is None:
             return None
         title=title_node.get_text()
-        #print title
-        if (title.find(u"思域")<0 and 
-        title.find(u"卡罗拉") <0 and 
-        title.find(u"科鲁兹")<0 and
-        title.find(u"马自达6")<0 and
-        title.find(u"雷凌")<0 and
-        title.find(u"轩逸")<0):
+        
+        hit=False
+        for keyWord in titleKeyWords:
+            if title.find(keyWord)>=0:
+                hit=True
+                break
+        if hit==False:
             return None
 
         if title_node is None:
@@ -58,8 +41,6 @@ class HtmlParser(object):
             res_data['price']=""
         else:
             price=float(price_node.get_text()[1:])
-            if price>10.0:
-                return None
             res_data['price']=price
             
         birthday_node=soup.find('ul',class_="assort clearfix")
@@ -69,9 +50,6 @@ class HtmlParser(object):
             res_data['birthday']=""
         else:
             birthday=birthday_node.get_text()[:-4]
-            year=int(birthday[:4])
-            if year<2011:
-                return None
             res_data['birthday']=birthday
 
         if birthday_node is not None:
@@ -98,7 +76,6 @@ class HtmlParser(object):
         else:
             res_data['city']=""
 
-        
         img_node=soup.find('ul',class_="dt-thumb-img clearfix")
         if img_node is not None:
             img_node=img_node.find('img')
@@ -110,16 +87,30 @@ class HtmlParser(object):
             if atIndex > 0:
                 src=src[0:atIndex]
             res_data['img_src']=src
-        
-        #print res_data
         return res_data
 
-    def parse(self,url,html_content):
-        #print "parse in"
+    def parse_findUrls(self,url,html_content):
+        if url is None or html_content is None:
+            return None
+        soup=bs4.BeautifulSoup(html_content,'html.parser',from_encoding='utf-8')    
+        new_urls=set()
+        new_dataUrls=set()
+        pattern=r"/ty/buy/[a-z0-9]+/$"
+        if re.search(pattern,url):
+            links=soup.find_all('a',href=re.compile(pattern))
+            for link in links:
+                new_url=link['href']
+                new_full_url=urlparse.urljoin(url,new_url)
+                new_urls.add(new_full_url)
+            links1=soup.find_all('a',href=re.compile(r"/[a-z]+/\d+x\.htm$"))
+            for link in links1:
+                new_url=link['href']
+                new_full_url=urlparse.urljoin(url,new_url)
+                new_dataUrls.add(new_full_url)
+        return new_urls,new_dataUrls
+
+    def parse_parseData(self,url,html_content,titleKeyWords):
         if url is None or html_content is None:
             return None
         soup=bs4.BeautifulSoup(html_content,'html.parser',from_encoding='utf-8')
-        new_urls=self._get_new_urls(url,soup)
-        #new_data={}
-        new_data=self._get_new_data(url,soup)
-        return new_urls,new_data
+        return self._get_new_data(url,soup,titleKeyWords)

@@ -3,6 +3,7 @@ class UrlManager(object):
     def __init__(self):
         self.new_urls = set()
         self.old_urls = set()
+        self.dataUrls = set()
 
     def add_new_url(self,new_url):
         if new_url is None:
@@ -26,6 +27,15 @@ class UrlManager(object):
         self.old_urls.add(url)
         return url
     
-    
-    
+    def dataUrl_add(self,new_url):
+        if new_url is None:
+            return
+        if new_url not in self.dataUrls:
+            self.dataUrls.add(new_url)
+
+    def dataUrl_is_exist(self,new_url):
+        if new_url in self.dataUrls:
+            return True
+        else:
+            return False
     
